@@ -57,8 +57,15 @@ jobs:
                     --resource-group ${{ env.RESOURCE_GROUP }} \
                     --query properties.outputs.acrLoginServer.value \
                     -o tsv)
-                echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
-                echo "Function App deployment completed and ACR login server retrieved: $ACR_LOGIN_SERVER"
+
+                # Get Funciton 
+                FUNC_APP_NAME=$(az deployment group show \
+                    --name func-app-container-deploy-${{ github.run_number }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --query properties.outputs.acrLoginServer.value \
+                    -o tsv)
+                echo "FUNC_APP_NAME=$FUNC_APP_NAME" >> $GITHUB_ENV
+                echo "Function App deployment completed, ACR login server retrieved: $ACR_LOGIN_SERVER, and function app name: $FUNC_APP_NAME"
 
             - name: Build and Push Docker Image
               run: |
@@ -72,13 +79,6 @@ jobs:
                 docker push ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
                 
                 echo "Docker image pushed to ACR: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"
-
-            - name: Get Function App Name
-              id: get-func-app-name
-              run: |
-                FUNC_APP_NAME=$(az functionapp list -g ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
-                echo "FUNC_APP_NAME=$FUNC_APP_NAME" >> $GITHUB_ENV
-                echo "Retrieved Function App name: $FUNC_APP_NAME"
 
             - name: Update Function App Container Image
               run: |

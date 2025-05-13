@@ -90,3 +90,6 @@ resource functionAppAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04
 
 @description('The login server URL for the container registry')
 output acrLoginServer string = azContainerRegistry.properties.loginServer
+
+@description('The function app name')
+output functionAppName string = azFunctionApp.name
