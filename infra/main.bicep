@@ -72,14 +72,6 @@ resource azFunctionApp 'Microsoft.Web/sites@2024-04-01' = {
           name: 'FUNCTIONS_EXTENSION_VERSION'
           value: '~4'
         }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_URL'
-          value: 'https://${azContainerRegistry.properties.loginServer}'
-        }
-        {
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'false'
-        }
       ]
     }
   }
