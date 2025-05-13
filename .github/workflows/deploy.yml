@@ -1,0 +1,72 @@
+name: Deploy Function App to Container App
+
+on:
+    workflow_dispatch:
+
+permissions:
+    id-token: write
+    contents: read
+
+env:
+    RESOURCE_GROUP: "rg-pyt001"
+    LOCATION: "southafricanorth"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment: dev
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Azure Login
+              uses: azure/login@v2
+              with:
+                client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+            - name: Create Resource Group if not exists
+              run: |
+                if ! az group exists --name ${{ env.RESOURCE_GROUP }}; then
+                    az group create --name ${{ env.RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+                fi
+
+            - name: Build and Push Docker Image
+              run: |
+                docker build ./src -t python-function-app:${{ github.sha }}
+
+            - name: Deploy Bicep Infrastructure
+              id: deploy-bicep
+              run: |
+                az deployment group create \
+                    --name func-app-container-deploy-${{ github.run_number }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --template-file ./infra/main.bicep \
+                    --what-if
+
+                az deployment group create \
+                    --name func-app-container-deploy-${{ github.run_number }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --template-file ./infra/main.bicep
+
+                az deployment group wait \
+                    --name func-app-container-deploy-${{ github.run_number }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --created
+
+            - name: Get Function App Name
+              id: get-func-app-name
+              run: |
+                FUNC_APP_NAME=$(az functionapp list -g ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
+                echo "FUNC_APP_NAME=$FUNC_APP_NAME" >> $GITHUB_ENV
+
+            - name: Deploy Function App
+              run: |
+                az functionapp deployment container config --enable-cd true \
+                    --name ${{ env.FUNC_APP_NAME }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }}
+
+                az functionapp deployment container show-cd-url \
+                    --name ${{ env.FUNC_APP_NAME }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }}
