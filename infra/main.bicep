@@ -46,11 +46,14 @@ resource azContainerAppEnvironment 'Microsoft.App/managedEnvironments@2025-01-01
   }
 }
 
-// function app targeting container app - cannot use azure verified modules yet, as it is not updated to support functions on container apps
+// function app targeting container app
 resource azFunctionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: 'wsfapyt001'
   location: resourceGroup().location
   kind: 'functionapp,linux,container,azurecontainerapps'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     managedEnvironmentId: azContainerAppEnvironment.id
     workloadProfileName: 'Consumption'
@@ -69,8 +72,27 @@ resource azFunctionApp 'Microsoft.Web/sites@2024-04-01' = {
           name: 'FUNCTIONS_EXTENSION_VERSION'
           value: '~4'
         }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_URL'
+          value: 'https://${azContainerRegistry.properties.loginServer}'
+        }
+        {
+          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+          value: 'false'
+        }
       ]
     }
+  }
+}
+
+// Grant AcrPull role to Function App's managed identity
+resource functionAppAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(azFunctionApp.id, azContainerRegistry.id, 'AcrPull')
+  scope: azContainerRegistry
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull role
+    principalId: azFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 

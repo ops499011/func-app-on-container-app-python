@@ -85,6 +85,6 @@ jobs:
                 az functionapp config container set \
                     --name ${{ env.FUNC_APP_NAME }} \
                     --resource-group ${{ env.RESOURCE_GROUP }} \
-                    --docker-custom-image-name ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
+                    --image ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
                 
                 echo "Function App container image updated to: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"
