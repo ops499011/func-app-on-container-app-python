@@ -62,7 +62,7 @@ jobs:
                 FUNC_APP_NAME=$(az deployment group show \
                     --name func-app-container-deploy-${{ github.run_number }} \
                     --resource-group ${{ env.RESOURCE_GROUP }} \
-                    --query properties.outputs.acrLoginServer.value \
+                    --query properties.outputs.functionAppName.value \
                     -o tsv)
                 echo "FUNC_APP_NAME=$FUNC_APP_NAME" >> $GITHUB_ENV
                 echo "Function App deployment completed, ACR login server retrieved: $ACR_LOGIN_SERVER, and function app name: $FUNC_APP_NAME"
