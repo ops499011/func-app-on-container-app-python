@@ -32,10 +32,6 @@ jobs:
                     az group create --name ${{ env.RESOURCE_GROUP }} --location ${{ env.LOCATION }}
                 fi
 
-            - name: Build and Push Docker Image
-              run: |
-                docker build ./src -t python-function-app:${{ github.sha }}
-
             - name: Deploy Bicep Infrastructure
               id: deploy-bicep
               run: |
@@ -55,18 +51,40 @@ jobs:
                     --resource-group ${{ env.RESOURCE_GROUP }} \
                     --created
 
+                # Get ACR login server
+                ACR_LOGIN_SERVER=$(az deployment group show \
+                    --name func-app-container-deploy-${{ github.run_number }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --query properties.outputs.acrLoginServer.value \
+                    -o tsv)
+                echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
+                echo "Function App deployment completed and ACR login server retrieved: $ACR_LOGIN_SERVER"
+
+            - name: Build and Push Docker Image
+              run: |
+                # Login to ACR
+                az acr login -n crpyt001
+                
+                # Build and tag the image
+                docker build ./src -t ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
+                
+                # Push to ACR
+                docker push ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
+                
+                echo "Docker image pushed to ACR: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"
+
             - name: Get Function App Name
               id: get-func-app-name
               run: |
                 FUNC_APP_NAME=$(az functionapp list -g ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
                 echo "FUNC_APP_NAME=$FUNC_APP_NAME" >> $GITHUB_ENV
+                echo "Retrieved Function App name: $FUNC_APP_NAME"
 
-            - name: Deploy Function App
+            - name: Update Function App Container Image
               run: |
-                az functionapp deployment container config --enable-cd true \
+                az functionapp config container set \
                     --name ${{ env.FUNC_APP_NAME }} \
-                    --resource-group ${{ env.RESOURCE_GROUP }}
-
-                az functionapp deployment container show-cd-url \
-                    --name ${{ env.FUNC_APP_NAME }} \
-                    --resource-group ${{ env.RESOURCE_GROUP }}
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --docker-custom-image-name ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
+                
+                echo "Function App container image updated to: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"

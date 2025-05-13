@@ -1,6 +1,20 @@
 // the scope, the deployment deploys resources to
 targetScope = 'resourceGroup'
 
+// container registry for function app images
+resource azContainerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
+  name: 'crpyt001'
+  location: resourceGroup().location
+  sku: {
+    name: 'Basic'
+  }
+  properties: {
+    adminUserEnabled: true
+    networkRuleBypassOptions: 'AzureServices'
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
 // storage account for function app
 resource azStorageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   name: 'saapyt001'
@@ -59,3 +73,6 @@ resource azFunctionApp 'Microsoft.Web/sites@2024-04-01' = {
     }
   }
 }
+
+@description('The login server URL for the container registry')
+output acrLoginServer string = azContainerRegistry.properties.loginServer
