@@ -82,6 +82,9 @@ jobs:
 
             - name: Update Function App Container Image
               run: |
-                az resource patch --resource-group  ${{ env.RESOURCE_GROUP }} --name ${{ env.FUNC_APP_NAME }} --resource-type "Microsoft.Web/sites" --properties "{ \"siteConfig\": { \"linuxFxVersion\": \"DOCKER|${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}\", \"appSettings\": [{\"name\": \"DOCKER_REGISTRY_SERVER_URL\", \"value\": \"${ACR_LOGIN_SERVER}\"}]}}"
+                az functionapp config container set \
+                    --name ${{ env.FUNC_APP_NAME }} \
+                    --resource-group ${{ env.RESOURCE_GROUP }} \
+                    --image ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
                 
                 echo "Function App container image updated to: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"
