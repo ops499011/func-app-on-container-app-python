@@ -57,6 +57,7 @@ jobs:
                     --resource-group ${{ env.RESOURCE_GROUP }} \
                     --query properties.outputs.acrLoginServer.value \
                     -o tsv)
+                echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $GITHUB_ENV
 
                 # Get Funciton 
                 FUNC_APP_NAME=$(az deployment group show \
@@ -73,12 +74,12 @@ jobs:
                 az acr login -n crpyt001
                 
                 # Build and tag the image
-                docker build ./src -t ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
+                docker build ./src -t ${{env.ACR_LOGIN_SERVER}}/python-function-app:${{ github.sha }}
                 
                 # Push to ACR
-                docker push ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
+                docker push ${{env.ACR_LOGIN_SERVER}}/python-function-app:${{ github.sha }}
                 
-                echo "Docker image pushed to ACR: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"
+                echo "Docker image pushed to ACR: ${{env.ACR_LOGIN_SERVER}}/python-function-app:${{ github.sha }}"
 
             - name: Update Function App Container Image
               run: |
@@ -87,4 +88,4 @@ jobs:
                     --resource-group ${{ env.RESOURCE_GROUP }} \
                     --image ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}
                 
-                echo "Function App container image updated to: ${ACR_LOGIN_SERVER}/python-function-app:${{ github.sha }}"
+                echo "Function App container image updated to: ${{env.ACR_LOGIN_SERVER}}/python-function-app:${{ github.sha }}"
